@@ -4,7 +4,9 @@ create table tasks (
   user_id uuid references auth.users not null,
   text text not null,
   quadrant text not null check (quadrant in ('doNow', 'distractions', 'build', 'eliminate')),
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+  status text not null default 'active' check (status in ('active', 'completed')),
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  completed_at timestamp with time zone
 );
 
 -- Enable Row Level Security (RLS)
