@@ -1,5 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { KeyboardEvent } from 'react'
+import { supabase } from './supabase'
+import type { Session } from '@supabase/supabase-js'
+import Auth from './Auth'
 
 type QuadrantType = 'doNow' | 'distractions' | 'build' | 'eliminate'
 
@@ -11,27 +14,65 @@ interface Task {
 type TasksState = Record<QuadrantType, Task[]>
 
 function App() {
+  const [session, setSession] = useState<Session | null>(null)
   const [tasks, setTasks] = useState<TasksState>({
-    doNow: [{ id: '1', text: 'Review Q3 presentation' }],
-    distractions: [{ id: '2', text: 'Reply to slack threads' }],
-    build: [{ id: '3', text: 'Learn WebGL basics' }],
-    eliminate: [{ id: '4', text: 'Doomscrolling' }]
+    doNow: [],
+    distractions: [],
+    build: [],
+    eliminate: []
   })
 
   const [brainDump, setBrainDump] = useState('')
   const [isSorting, setIsSorting] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
 
-  const addTask = (quadrant: QuadrantType, text: string) => {
-    if (!text.trim()) return
-    const newTask = { id: Date.now().toString(), text: text.trim() }
-    setTasks(prev => ({
-      ...prev,
-      [quadrant]: [...prev[quadrant], newTask]
-    }))
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+    })
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    if (session) fetchTasks()
+  }, [session])
+
+  const fetchTasks = async () => {
+    const { data, error } = await supabase.from('tasks').select('*').order('created_at', { ascending: true })
+    if (error) { console.error('Error fetching tasks', error); return }
+
+    const newTasks: TasksState = { doNow: [], distractions: [], build: [], eliminate: [] }
+    data?.forEach(t => {
+      if (newTasks[t.quadrant as QuadrantType]) {
+        newTasks[t.quadrant as QuadrantType].push({ id: t.id, text: t.text })
+      }
+    })
+    setTasks(newTasks)
   }
 
-  const removeTask = (quadrant: QuadrantType, taskId: string) => {
+  const addTask = async (quadrant: QuadrantType, text: string) => {
+    if (!text.trim() || !session?.user) return
+    const newTaskObj = { user_id: session.user.id, text: text.trim(), quadrant }
+    
+    const { data, error } = await supabase.from('tasks').insert([newTaskObj]).select()
+    if (error) { console.error("Error inserting:", error); return }
+    
+    if (data && data[0]) {
+      setTasks(prev => ({
+        ...prev,
+        [quadrant]: [...prev[quadrant], { id: data[0].id, text: data[0].text }]
+      }))
+    }
+  }
+
+  const removeTask = async (quadrant: QuadrantType, taskId: string) => {
+    const { error } = await supabase.from('tasks').delete().eq('id', taskId)
+    if (error) { console.error("Error deleting:", error); return }
     setTasks(prev => ({
       ...prev,
       [quadrant]: prev[quadrant].filter(t => t.id !== taskId)
@@ -67,10 +108,19 @@ function App() {
     }
   }
 
+  if (!session) {
+    return <Auth />
+  }
+
   return (
     <div className="slide-container">
-      <div className="header">
+      <div className="header" style={{ justifyContent: 'space-between', width: '100%' }}>
         <h1><span className="bolt-icon">⚡</span> THE MATRIX</h1>
+        <button 
+          onClick={() => supabase.auth.signOut()} 
+          style={{ background: 'transparent', border: '1px solid #404040', color: '#a1a1aa', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}>
+          Log Out
+        </button>
       </div>
 
       <div className="matrix-board">
