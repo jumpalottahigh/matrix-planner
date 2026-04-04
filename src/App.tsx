@@ -29,6 +29,7 @@ function App() {
   const [isSorting, setIsSorting] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [breakingDownIds, setBreakingDownIds] = useState<string[]>([])
+  const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -103,6 +104,7 @@ function App() {
   }
 
   const completeTask = async (quadrant: QuadrantType, taskId: string) => {
+    setActiveDropdownId(null)
     const { error } = await supabase
       .from('tasks')
       .update({ status: 'completed', completed_at: new Date().toISOString() })
@@ -117,6 +119,40 @@ function App() {
     }))
   }
 
+  const hardDeleteTask = async (quadrant: QuadrantType, taskId: string) => {
+    setActiveDropdownId(null)
+    const { error } = await supabase.from('tasks').delete().eq('id', taskId)
+    if (!error) {
+      setTasks((prev) => ({
+        ...prev,
+        [quadrant]: prev[quadrant].filter((t) => t.id !== taskId)
+      }))
+    }
+  }
+
+  const moveTask = async (
+    taskId: string,
+    sourceQ: QuadrantType,
+    targetQ: QuadrantType
+  ) => {
+    setActiveDropdownId(null)
+    const { error } = await supabase
+      .from('tasks')
+      .update({ quadrant: targetQ })
+      .eq('id', taskId)
+    if (!error) {
+      setTasks((prev) => {
+        const task = prev[sourceQ].find((t) => t.id === taskId)
+        if (!task) return prev
+        return {
+          ...prev,
+          [sourceQ]: prev[sourceQ].filter((t) => t.id !== taskId),
+          [targetQ]: [...prev[targetQ], task]
+        }
+      })
+    }
+  }
+
   const handleKeyDown = (
     e: KeyboardEvent<HTMLInputElement>,
     quadrant: QuadrantType
@@ -125,6 +161,67 @@ function App() {
       addTask(quadrant, e.currentTarget.value)
       e.currentTarget.value = ''
     }
+  }
+
+  const renderTaskActions = (task: Task, currentQ: QuadrantType) => {
+    const isOpen = activeDropdownId === task.id
+    const otherQs = ['doNow', 'distractions', 'build', 'eliminate'].filter(
+      (q) => q !== currentQ
+    ) as QuadrantType[]
+    const qMap: Record<QuadrantType, string> = {
+      doNow: 'Do Now',
+      distractions: 'Distractions',
+      build: 'Build',
+      eliminate: 'Eliminate'
+    }
+
+    return (
+      <div className='dropdown-container'>
+        <button
+          className='kebab-btn'
+          onClick={() => setActiveDropdownId(isOpen ? null : task.id)}
+        >
+          ⋮
+        </button>
+        {isOpen && (
+          <>
+            <div
+              className='dropdown-overlay'
+              onClick={() => setActiveDropdownId(null)}
+            ></div>
+            <div className='dropdown-menu'>
+              <button
+                className='dropdown-item'
+                onClick={() => {
+                  setActiveDropdownId(null)
+                  breakDownTask(currentQ, task.id)
+                }}
+              >
+                ✨ Break down with AI
+              </button>
+              <div className='dropdown-separator'></div>
+              {otherQs.map((q) => (
+                <button
+                  key={q}
+                  className='dropdown-item'
+                  onClick={() => moveTask(task.id, currentQ, q)}
+                >
+                  ⇨ Move to {qMap[q]}
+                </button>
+              ))}
+              <div className='dropdown-separator'></div>
+              <button
+                className='dropdown-item'
+                style={{ color: '#ef4444' }}
+                onClick={() => hardDeleteTask(currentQ, task.id)}
+              >
+                🗑️ Delete task
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    )
   }
 
   const breakDownTask = async (quadrant: QuadrantType, taskId: string) => {
@@ -318,10 +415,10 @@ function App() {
             {/* Middle row */}
             <div className='row-header'>URGENT</div>
             <div className='quadrant border-right border-bottom'>
-              <div className='mobile-label'>Important / Urgent</div>
               <div className='q-title'>
                 <span className='dot red'></span> DO NOW
               </div>
+              <div className='mobile-label'>Important / Urgent</div>
               <div className='task-list'>
                 {tasks.doNow.map((task) => (
                   <div key={task.id} className='task'>
@@ -336,13 +433,7 @@ function App() {
                         : task.text}
                     </div>
                     <div className='task-actions'>
-                      <button
-                        className='breakdown-btn'
-                        title='✨ Break down with AI'
-                        onClick={() => breakDownTask('doNow', task.id)}
-                      >
-                        ✨
-                      </button>
+                      {renderTaskActions(task, 'doNow')}
                     </div>
                   </div>
                 ))}
@@ -355,10 +446,10 @@ function App() {
               />
             </div>
             <div className='quadrant border-bottom'>
-              <div className='mobile-label'>Not Important / Urgent</div>
               <div className='q-title'>
                 <span className='dot yellow'></span> DISTRACTIONS
               </div>
+              <div className='mobile-label'>Not Important / Urgent</div>
               <div className='task-list'>
                 {tasks.distractions.map((task) => (
                   <div key={task.id} className='task'>
@@ -373,13 +464,7 @@ function App() {
                         : task.text}
                     </div>
                     <div className='task-actions'>
-                      <button
-                        className='breakdown-btn'
-                        title='✨ Break down with AI'
-                        onClick={() => breakDownTask('distractions', task.id)}
-                      >
-                        ✨
-                      </button>
+                      {renderTaskActions(task, 'distractions')}
                     </div>
                   </div>
                 ))}
@@ -395,10 +480,10 @@ function App() {
             {/* Bottom row */}
             <div className='row-header'>NOT URGENT</div>
             <div className='quadrant border-right'>
-              <div className='mobile-label'>Important / Not Urgent</div>
               <div className='q-title'>
                 <span className='dot green'></span> BUILD
               </div>
+              <div className='mobile-label'>Important / Not Urgent</div>
               <div className='task-list'>
                 {tasks.build.map((task) => (
                   <div key={task.id} className='task'>
@@ -413,13 +498,7 @@ function App() {
                         : task.text}
                     </div>
                     <div className='task-actions'>
-                      <button
-                        className='breakdown-btn'
-                        title='✨ Break down with AI'
-                        onClick={() => breakDownTask('build', task.id)}
-                      >
-                        ✨
-                      </button>
+                      {renderTaskActions(task, 'build')}
                     </div>
                   </div>
                 ))}
@@ -432,10 +511,10 @@ function App() {
               />
             </div>
             <div className='quadrant'>
-              <div className='mobile-label'>Not Important / Not Urgent</div>
               <div className='q-title'>
                 <span className='dot purple'></span> ELIMINATE
               </div>
+              <div className='mobile-label'>Not Important / Not Urgent</div>
               <div className='task-list'>
                 {tasks.eliminate.map((task) => (
                   <div key={task.id} className='task'>
@@ -450,13 +529,7 @@ function App() {
                         : task.text}
                     </div>
                     <div className='task-actions'>
-                      <button
-                        className='breakdown-btn'
-                        title='✨ Break down with AI'
-                        onClick={() => breakDownTask('eliminate', task.id)}
-                      >
-                        ✨
-                      </button>
+                      {renderTaskActions(task, 'eliminate')}
                     </div>
                   </div>
                 ))}

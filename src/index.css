@@ -644,6 +644,69 @@ body {
   padding: 8px;
 }
 
-.hard-delete-btn:hover {
-  color: #ef4444;
+/* --- Dropdown Menu --- */
+.dropdown-container {
+  position: relative;
+}
+
+.kebab-btn {
+  background: transparent;
+  border: none;
+  color: #a1a1aa;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.2s;
+  border-radius: 4px;
+}
+
+.kebab-btn:hover {
+  color: #f4f4f5;
+  background: #333;
+}
+
+.dropdown-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+}
+
+.dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: 30px;
+  background: #232323;
+  border: 1px solid #404040;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  z-index: 101;
+  padding: 8px 0;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+}
+
+.dropdown-item {
+  background: transparent;
+  border: none;
+  color: #e5e5e5;
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: background 0.2s;
+}
+
+.dropdown-item:hover {
+  background: #333;
+}
+
+.dropdown-separator {
+  height: 1px;
+  background: #404040;
+  margin: 4px 0;
 }
