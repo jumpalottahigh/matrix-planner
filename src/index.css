@@ -73,7 +73,6 @@ body {
   width: 100%;
 }
 
-
 .slide-container {
   width: 100%;
   max-width: 1280px;
@@ -147,7 +146,6 @@ body {
   display: none;
 }
 
-
 /* --- Quadrants --- */
 .quadrant {
   padding: 40px 0 0 50px;
@@ -178,14 +176,23 @@ body {
   height: 18px;
   border-radius: 50%;
   display: inline-block;
-  box-shadow: inset -2px -2px 4px rgba(0, 0, 0, 0.4),
-      inset 2px 2px 4px rgba(255, 255, 255, 0.3);
+  box-shadow:
+    inset -2px -2px 4px rgba(0, 0, 0, 0.4),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.3);
 }
 
-.dot.red { background-color: #ef4444; }
-.dot.yellow { background-color: #eab308; }
-.dot.green { background-color: #22c55e; }
-.dot.purple { background-color: #475569; }
+.dot.red {
+  background-color: #ef4444;
+}
+.dot.yellow {
+  background-color: #eab308;
+}
+.dot.green {
+  background-color: #22c55e;
+}
+.dot.purple {
+  background-color: #475569;
+}
 
 /* Task Checkboxes */
 .task-list {
@@ -309,7 +316,9 @@ body {
 }
 
 @keyframes spin {
-  100% { transform: rotate(360deg); }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .task-actions {
@@ -343,7 +352,9 @@ body {
   }
 
   /* Hide Desktop Headers */
-  .col-header, .row-header, .empty-corner {
+  .col-header,
+  .row-header,
+  .empty-corner {
     display: none;
   }
 
@@ -467,4 +478,12 @@ body {
   .header h1 {
     font-size: 24px;
   }
+}
+
+.footer {
+  padding: 40px 0 20px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-flow: column nowrap;
 }
