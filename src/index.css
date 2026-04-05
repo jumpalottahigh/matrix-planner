@@ -634,14 +634,36 @@ body {
   letter-spacing: 1px;
 }
 
-.hard-delete-btn {
+.hard-delete-btn,
+.restore-btn {
   background: transparent;
   border: none;
-  color: #555;
   font-size: 20px;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: all 0.2s;
   padding: 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.restore-btn {
+  color: #a1a1aa;
+}
+
+.restore-btn:hover {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+}
+
+.hard-delete-btn {
+  color: #555;
+}
+
+.hard-delete-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
 }
 
 /* --- Dropdown Menu --- */

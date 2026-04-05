@@ -44,8 +44,8 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (session) fetchTasks()
-  }, [session])
+    if (session && currentTab === 'matrix') fetchTasks()
+  }, [session, currentTab])
 
   const fetchTasks = async () => {
     const { data, error } = await supabase

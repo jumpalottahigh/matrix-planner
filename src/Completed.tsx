@@ -62,6 +62,20 @@ export default function CompletedView() {
     }
   }
 
+  const restoreTask = async (id: string) => {
+    const { error } = await supabase
+      .from('tasks')
+      .update({
+        status: 'active',
+        created_at: new Date().toISOString(),
+        completed_at: null
+      })
+      .eq('id', id)
+    if (!error) {
+      setTasks((prev) => prev.filter((t) => t.id !== id))
+    }
+  }
+
   const groupedTasks: Record<string, HistoryTask[]> = {}
 
   tasks.forEach((t) => {
@@ -137,7 +151,7 @@ export default function CompletedView() {
                 {dayTasks.map((t) => (
                   <div key={t.id} className='timeline-item'>
                     <span className='timeline-icon'>
-                      {t.status === 'completed' ? '🌟' : '⭕'}
+                      {t.status === 'completed' ? '✅' : '⭕'}
                     </span>
                     <div className='timeline-content'>
                       <div
@@ -158,6 +172,13 @@ export default function CompletedView() {
                           : `Missed from ${new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
                       </div>
                     </div>
+                    <button
+                      className='restore-btn'
+                      onClick={() => restoreTask(t.id)}
+                      title='Return to Matrix'
+                    >
+                      ↺
+                    </button>
                     <button
                       className='hard-delete-btn'
                       onClick={() => hardDeleteTask(t.id)}

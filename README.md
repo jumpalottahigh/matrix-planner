@@ -1,73 +1,61 @@
-# React + TypeScript + Vite
+<h1 align="center">Matrix Planner ⚡</h1>
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+<p align="center">
+  A minimalist, AI-powered Eisenhower Matrix planner for high-performance task management.
+</p>
 
-Currently, two official plugins are available:
+<p align="center">
+  <img src="src/assets/matrix_planner_hero.png" alt="Matrix Planner Hero" width="800">
+</p>
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🚀 Introduction
 
-## React Compiler
+**Matrix Planner** is a high-speed productivity tool designed to help you master your daily workflow. Inspired by the **Eisenhower Matrix**, it automatically handles the "daily rollover" of tasks, keeps a historical timeline of your accomplishments, and uses **AI** to instantly categorize and break down complex items.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Keep your daily focus sharp by separating today's "Do Now" from the clutter of yesterday.
 
-## Expanding the ESLint configuration
+### 📘 Project details
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+⭐ **AI Task Sorter**: Streamline your brain dump into the four quadrants automatically using **Google Gemini**.
+⭐ **AI Task Breakdown**: Complex task? Let the AI break it into 2-3 manageable sub-tasks for better momentum.
+⭐ **Daily Rollover**: Unfinished tasks from previous days automatically roll over to a historical timeline view at midnight.
+⭐ **Accomplishment Timeline**: A beautiful, scrollable history of your wins, complete with timestamps.
+⭐ **Task Restoration**: Easily return any item (completed or missed) from the timeline back to your active matrix.
+⭐ **Full Persistence**: Powered by **Supabase** for secure authentication and cloud storage.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 🛠️ Tech Stack
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- [React 19](https://reactjs.org/) & [TypeScript](https://www.typescriptlang.org/)
+- [Supabase](https://supabase.com/) (Auth, Database)
+- [Google Gemini 2.0 Flash](https://ai.google.dev/) (Task Intelligence)
+- [Vite](https://vitejs.dev/) & [ESLint](https://eslint.org/)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 💻 Running locally
+
+To set up the project locally:
+
+```bash
+# 1. Clone the repository
+$ git clone https://github.com/jumpalottahigh/matrix-planner.git
+
+# 2. Install dependencies
+$ cd matrix-planner
+$ npm install
+
+# 3. Environment Variables
+# Copy the example file and update with your Supabase AND Gemini API keys:
+$ cp .env.example .env
+
+# 4. Fire it up
+$ npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 📄 License
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+This project is licensed under the [MIT License](LICENSE).
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
+
+<p align="center">
+  Built with ❤️ by <a href="https://georgi-yanev.com">Georgi Yanev</a>
+</p>
