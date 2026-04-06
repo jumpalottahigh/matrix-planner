@@ -245,7 +245,7 @@ function App() {
       systemInstruction: {
         parts: [
           {
-            text: "You break down tasks into smaller steps. Return a JSON object with a 'subtasks' array of strings. Keep them extremely concise (2-4 words each if possible)."
+            text: "You break down tasks into smaller steps. Return a JSON object with a 'subtasks' array of strings. Keep subtasks extremely concise (2-4 words each). MANDATORY: Do not add any new information or details not implied by the task."
           }
         ]
       },
@@ -265,35 +265,51 @@ function App() {
       const textResponse = result?.candidates?.[0]?.content?.parts?.[0]?.text
 
       if (textResponse) {
-        const data = JSON.parse(textResponse)
-        const newTasks = data.subtasks.map((t: string) => ({
-          user_id: session?.user.id,
-          text: '↳ ' + t,
-          quadrant
-        }))
+        try {
+          const data = JSON.parse(textResponse)
+          if (!data.subtasks || !Array.isArray(data.subtasks)) {
+             throw new Error("Invalid subtasks format.");
+          }
 
-        const { data: insertedData, error } = await supabase
-          .from('tasks')
-          .insert(newTasks)
-          .select()
-        if (!error && insertedData) {
-          setTasks((prev) => {
-            const newArr = [...prev[quadrant]]
-            const originalIndex = newArr.findIndex((t) => t.id === taskId)
-            if (originalIndex !== -1) {
-              const itemsToInsert = insertedData.map((d) => ({
-                id: d.id,
-                text: d.text
-              }))
-              newArr.splice(originalIndex + 1, 0, ...itemsToInsert)
-            }
-            return { ...prev, [quadrant]: newArr }
-          })
+          const cleanTitle = (title: string): string => {
+            if (!title) return 'Untitled subtask';
+            const line = title.split('\n')[0].replace(/[`*#]/g, '').trim();
+            return line.length > 80 ? line.substring(0, 77) + '...' : line;
+          };
+
+          const newTasksData = data.subtasks.map((t: string) => ({
+            user_id: session?.user.id,
+            text: '↳ ' + cleanTitle(t),
+            quadrant
+          }))
+
+          const { data: insertedData, error } = await supabase
+            .from('tasks')
+            .insert(newTasksData)
+            .select()
+          if (!error && insertedData) {
+            setTasks((prev) => {
+              const newArr = [...prev[quadrant]]
+              const originalIndex = newArr.findIndex((t) => t.id === taskId)
+              if (originalIndex !== -1) {
+                const itemsToInsert = insertedData.map((d) => ({
+                  id: d.id,
+                  text: d.text
+                }))
+                newArr.splice(originalIndex + 1, 0, ...itemsToInsert)
+              }
+              return { ...prev, [quadrant]: newArr }
+            })
+          } else if (error) {
+            console.error('Supabase error inserting subtasks:', error);
+          }
+        } catch (jsonErr) {
+          console.error('Error parsing breakdown response:', jsonErr, textResponse);
         }
       }
-    } catch (err) {
-      console.error(err)
-      alert('Failed to break down. Check API key.')
+    } catch (err: any) {
+      console.error('Breakdown failed:', err)
+      alert(`Failed to break down task: ${err.message || 'Unknown error'}`)
     } finally {
       setBreakingDownIds((prev) => prev.filter((id) => id !== taskId))
     }
@@ -311,7 +327,7 @@ function App() {
         systemInstruction: {
           parts: [
             {
-              text: 'You are an Eisenhower Matrix expert. Categorize the provided tasks into exactly one of these four categories: \'doNow\' (Urgent & Important), \'build\' (Not Urgent & Important), \'distractions\' (Urgent & Not Important), \'eliminate\' (Not Urgent & Not Important). Reply with a valid JSON object matching this schema: { "tasks": [ { "title": "task name", "quadrant": "doNow|build|distractions|eliminate" } ] }. No markdown formatting, just pure JSON. Keep task titles concise.'
+              text: 'You are an Eisenhower Matrix expert. Your ONLY job is to categorize tasks into the provided schema. STRICT RULES: 1. Use ONLY words from the user input for the title. 2. DO NOT add reasoning, quadrant names, or any extra text to the title. 3. Each task MUST have a valid quadrant.'
             }
           ]
         },
@@ -325,12 +341,17 @@ function App() {
                 items: {
                   type: 'OBJECT',
                   properties: {
-                    title: { type: 'STRING' },
+                    title: { 
+                        type: 'STRING', 
+                        description: 'The EXACT task name from users input (no extra words)' 
+                    },
                     quadrant: {
                       type: 'STRING',
-                      enum: ['doNow', 'build', 'distractions', 'eliminate']
+                      enum: ['doNow', 'build', 'distractions', 'eliminate'],
+                      description: 'doNow=Urgent/Important, build=NotUrgent/Important, distractions=Urgent/NotImportant, eliminate=NotUrgent/NotImportant'
                     }
-                  }
+                  },
+                  required: ['title', 'quadrant']
                 }
               }
             }
@@ -340,13 +361,48 @@ function App() {
 
       const result = await fetchGeminiWithRetry(payload)
       const textResponse = result?.candidates?.[0]?.content?.parts?.[0]?.text
-      if (textResponse) {
+      
+      if (!textResponse) {
+        // Check for safety filters or other issues
+        if (result?.promptFeedback?.blockReason) {
+            setErrorMsg(`Content blocked: ${result.promptFeedback.blockReason}`);
+        } else if (result?.error) {
+            setErrorMsg(`Gemini API error: ${result.error.message}`);
+        } else {
+            setErrorMsg('Received empty response from AI. Please try again.');
+        }
+        return;
+      }
+
+      const cleanTitle = (title: string) => {
+        if (!title) return 'Untitled task';
+        // Remove markdown and first line
+        let line = title.split('\n')[0].replace(/[`*#]/g, '').trim();
+        // Sanitize from common AI-leakage words (including quadrant names)
+        const leaks = ['doNow', 'build', 'distractions', 'eliminate', 'urgent', 'important'];
+        leaks.forEach((leak) => {
+          const regex = new RegExp(`\\s+${leak}$`, 'gi');
+          line = line.replace(regex, '');
+        });
+        return line.length > 80 ? line.substring(0, 77) + '...' : line;
+      };
+
+      try {
         const data = JSON.parse(textResponse)
+        if (!data.tasks || !Array.isArray(data.tasks)) {
+           throw new Error("Invalid response format: 'tasks' array missing.");
+        }
+        
         const newTasks = data.tasks.map((t: any) => ({
           user_id: session?.user.id,
-          text: t.title,
-          quadrant: t.quadrant
+          text: cleanTitle(t.title),
+          quadrant: t.quadrant || 'doNow'
         }))
+
+        if (newTasks.length === 0) {
+            setErrorMsg('No tasks found to categorize.');
+            return;
+        }
 
         const { data: insertedData, error } = await supabase
           .from('tasks')
@@ -356,21 +412,28 @@ function App() {
           setTasks((prev) => {
             const nextState = { ...prev }
             insertedData.forEach((d) => {
-              nextState[d.quadrant as QuadrantType] = [
-                ...nextState[d.quadrant as QuadrantType],
-                { id: d.id, text: d.text }
-              ]
+              if (nextState[d.quadrant as QuadrantType]) {
+                nextState[d.quadrant as QuadrantType] = [
+                    ...nextState[d.quadrant as QuadrantType],
+                    { id: d.id, text: d.text }
+                ]
+              }
             })
             return nextState
           })
           setBrainDump('')
+          setErrorMsg('') // Clear any previous errors
         } else if (error) {
-          setErrorMsg('Database error saving tasks.')
+          console.error('Database error:', error);
+          setErrorMsg(`Database error: ${error.message}`);
         }
+      } catch (parseErr: any) {
+        console.error('Error parsing response:', parseErr, textResponse);
+        setErrorMsg('Failed to process AI response. Please try again.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      setErrorMsg('Failed to sort. Check API key.')
+      setErrorMsg(err.message || 'Failed to sort tasks.');
     } finally {
       setIsSorting(false)
     }

@@ -276,7 +276,7 @@ body {
   resize: vertical;
   min-height: 100px;
   outline: none;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .gemini-btn {
@@ -439,7 +439,7 @@ body {
 
   .task-input {
     width: 100%;
-    font-size: 15px;
+    font-size: 16px;
     margin-top: 16px;
     padding: 8px 0;
   }
@@ -507,7 +507,7 @@ body {
   }
 
   .task-text {
-    font-size: 15px;
+    font-size: 16px;
   }
 
   .task {
